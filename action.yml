@@ -30,21 +30,24 @@ runs:
         #   ../path/to/file.txt
         #   path/to/file
         # Wildcards, spaces and newlines are not supported
-        if [[ $file =~ [^a-zA-Z0-9_./-] ]]; then
+        echo "Checking file name pattern for ${file}"
+        if [[ "${file}" =~ [^a-zA-Z0-9_./-] ]]; then
           echo "File ${file} contains invalid characters" >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
         # Validate the file is not a directory
-        if [[ -d $file ]]; then
+        echo "Checking file type for ${file}"
+        if [[ -d "${file}" ]]; then
           echo "File ${file} is a directory" >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
         # Fail if the file is missing, if there is any value for fail_on_missing
-        if [[ -f ${{ inputs.file }} ]]; then
-          echo "output=$(cat ${{ inputs.file }})" >> $GITHUB_OUTPUT
+        echo "Checking file exists for ${file}"
+        if [[ -f "${file}" ]]; then
+          echo "output=$(cat "${file}")" >> $GITHUB_OUTPUT
         elif [[ -n ${{ inputs.fail_on_missing }} ]]; then
-          echo "File ${{ inputs.file }} does not exist"
+          echo "File "${file}" does not exist" >> $GITHUB_STEP_SUMMARY
           exit 1
         else
-          echo "File ${{ inputs.file }} does not exist, but fail_on_missing is not set" >> $GITHUB_STEP_SUMMARY
+          echo "File "${file}" does not exist, but fail_on_missing is not set" >> $GITHUB_STEP_SUMMARY
         fi
