@@ -1,0 +1,50 @@
+name: File Output Collector
+description: Collects output from a file and makes it available as ouputs for reuse in other steps
+
+inputs:
+  file:
+    description: 'The file to read output from'
+    required: true
+  fail_on_missing:
+    description: 'Whether to fail if the file is missing'
+    required: false
+
+outputs:
+  output:
+    description: 'The output from the file'
+    value: ${{ steps.collect-output.outputs.output }}
+runs:
+  using: 'composite'
+  steps:
+    - name: 'Collect output from file'
+      id: collect-output
+      shell: bash
+      run: |
+        file="${{ inputs.file }}"
+
+        # Validate there are no special characters in the file name other than valid path characters
+        # valid formats:
+        #   file.txt
+        #   file.txt.txt
+        #   file
+        #   ../path/to/file.txt
+        #   path/to/file
+        # Wildcards, spaces and newlines are not supported
+        if [[ $file =~ [^a-zA-Z0-9_./-] ]]; then
+          echo "File ${file} contains invalid characters" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        # Validate the file is not a directory
+        if [[ -d $file ]]; then
+          echo "File ${file} is a directory" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        # Fail if the file is missing, if there is any value for fail_on_missing
+        if [[ -f ${{ inputs.file }} ]]; then
+          echo "output=$(cat ${{ inputs.file }})" >> $GITHUB_OUTPUT
+        elif [[ -n ${{ inputs.fail_on_missing }} ]]; then
+          echo "File ${{ inputs.file }} does not exist"
+          exit 1
+        else
+          echo "File ${{ inputs.file }} does not exist, but fail_on_missing is not set" >> $GITHUB_STEP_SUMMARY
+        fi
