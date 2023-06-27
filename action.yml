@@ -45,7 +45,8 @@ runs:
         echo "Checking file exists for ${file}"
         if [[ -f "${file}" ]]; then
           echo "output=$(cat "${file}")" >> $GITHUB_OUTPUT
-        elif [[ -n ${{ inputs.fail_on_missing }} ]]; then
+        # If the fail_on_missing input is set to any value, fail the step
+        elif [[ -n "${{ inputs.fail_on_missing }}" ]]; then
           echo "File "${file}" does not exist" >> $GITHUB_STEP_SUMMARY
           exit 1
         else
