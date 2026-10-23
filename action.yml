@@ -6,8 +6,9 @@ inputs:
     description: 'The file to read output from'
     required: true
   fail_on_missing:
-    description: 'Whether to fail if the file is missing'
+    description: 'Fail if the file is missing. Set to "false" or "no" to allow missing files.'
     required: false
+    default: 'true'
 
 outputs:
   output:

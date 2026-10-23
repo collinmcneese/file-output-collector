@@ -13,7 +13,7 @@ Pass a value written by a script or build step to later steps through
 | Input | Required | Description |
 | ----- | -------- | ----------- |
 | `file` | Yes | File path containing only letters, digits, `_`, `.`, `/`, and `-`. Directories are rejected. |
-| `fail_on_missing` | No | Any non-empty value, including `'false'`, fails if the file is missing. Omit to allow missing files. |
+| `fail_on_missing` | No | Defaults to `'true'`, which fails the step if the file is missing. Set to `'false'` or `'no'` (case-insensitive) to allow missing files. |
 
 ## Example
 
@@ -26,7 +26,7 @@ Pass a value written by a script or build step to later steps through
   uses: collinmcneese/file-output-collector@v1
   with:
     file: result.txt
-    fail_on_missing: 'true'
+    fail_on_missing: 'false'
 
 - name: Use file output
   shell: bash
