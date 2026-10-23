@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-action:
+    name: Test action
+    runs-on: ubuntu-slim
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Run tests
+        shell: bash
+        run: |
+          bash -n collect-output.sh
+          bash -n tests/test-collector.sh
+          bash tests/test-collector.sh
+
+      - name: Prepare smoke test
+        shell: bash
+        run: printf 'collected value\n' > .ci-output.txt
+
+      - name: Collect output
+        id: collect
+        uses: ./
+        with:
+          file: .ci-output.txt
+
+      - name: Verify result
+        shell: bash
+        env:
+          ACTUAL_OUTPUT: ${{ steps.collect.outputs.output }}
+        run: |
+          if [[ "$ACTUAL_OUTPUT" != 'collected value' ]]; then
+            echo "::error::Collected output did not match the expected value"
+            exit 1
+          fi
