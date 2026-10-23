@@ -10,98 +10,35 @@ permissions:
 
 jobs:
   test-action:
-    name: Test ${{ matrix.case.name }}
+    name: Test action
     runs-on: ubuntu-slim
-    strategy:
-      fail-fast: false
-      matrix:
-        case:
-          - name: relative file
-            file: .ci-fixtures/value.txt
-            output: collected value
-          - name: nested file
-            file: .ci-fixtures/nested/value.txt
-            output: nested value
-          - name: absolute file
-            file: .ci-fixtures/value.txt
-            absolute: true
-            output: collected value
-          - name: empty file
-            file: .ci-fixtures/empty.txt
-          - name: optional missing file
-            file: .ci-fixtures/missing.txt
-          - name: required missing file
-            file: .ci-fixtures/missing.txt
-            fail_on_missing: 'true'
-            outcome: failure
-          - name: non-empty false fails on missing file
-            file: .ci-fixtures/missing.txt
-            fail_on_missing: 'false'
-            outcome: failure
-          - name: directory
-            file: .ci-fixtures/nested
-            outcome: failure
-          - name: spaces
-            file: .ci-fixtures/invalid name.txt
-            outcome: failure
-          - name: wildcard
-            file: .ci-fixtures/*.txt
-            outcome: failure
-          - name: newline
-            file: ".ci-fixtures/invalid\nname.txt"
-            outcome: failure
-          - name: shell syntax remains literal
-            file: '$(touch .ci-fixtures/injected)'
-            outcome: failure
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Check Bash syntax
+      - name: Run tests
         shell: bash
-        run: bash -n collect-output.sh
-
-      - name: Prepare fixtures
-        id: fixtures
-        shell: bash
-        env:
-          CASE_FILE: ${{ matrix.case.file }}
-          ABSOLUTE_PATH: ${{ matrix.case.absolute }}
         run: |
-          mkdir -p .ci-fixtures/nested
-          printf 'collected value\n' > .ci-fixtures/value.txt
-          printf 'nested value\n' > .ci-fixtures/nested/value.txt
-          touch .ci-fixtures/empty.txt
-          if [[ "$ABSOLUTE_PATH" == 'true' ]]; then
-            printf 'file=%s/%s\n' "$GITHUB_WORKSPACE" "$CASE_FILE" >> "$GITHUB_OUTPUT"
-          fi
+          bash -n collect-output.sh
+          bash -n tests/test-collector.sh
+          bash tests/test-collector.sh
+
+      - name: Prepare smoke test
+        shell: bash
+        run: printf 'collected value\n' > .ci-output.txt
 
       - name: Collect output
         id: collect
-        continue-on-error: true
         uses: ./
         with:
-          file: ${{ steps.fixtures.outputs.file || matrix.case.file }}
-          fail_on_missing: ${{ matrix.case.fail_on_missing || '' }}
+          file: .ci-output.txt
 
       - name: Verify result
-        if: always()
         shell: bash
         env:
-          EXPECTED_OUTCOME: ${{ matrix.case.outcome || 'success' }}
-          ACTUAL_OUTCOME: ${{ steps.collect.outcome }}
-          EXPECTED_OUTPUT: ${{ matrix.case.output || '' }}
           ACTUAL_OUTPUT: ${{ steps.collect.outputs.output }}
         run: |
-          if [[ "$ACTUAL_OUTCOME" != "$EXPECTED_OUTCOME" ]]; then
-            echo "::error::Expected outcome '$EXPECTED_OUTCOME', got '$ACTUAL_OUTCOME'"
-            exit 1
-          fi
-          if [[ "$ACTUAL_OUTPUT" != "$EXPECTED_OUTPUT" ]]; then
+          if [[ "$ACTUAL_OUTPUT" != 'collected value' ]]; then
             echo "::error::Collected output did not match the expected value"
-            exit 1
-          fi
-          if [[ -e .ci-fixtures/injected ]]; then
-            echo "::error::File input was executed as shell code"
             exit 1
           fi
